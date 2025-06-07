@@ -1,4 +1,4 @@
-Rete.js Vue plugin
+Rete.js Stimulus plugin
 ====
 [![Made in Ukraine](https://img.shields.io/badge/made_in-ukraine-ffd700.svg?labelColor=0057b7)](https://stand-with-ukraine.pp.ua)
 [![Discord](https://img.shields.io/discord/1081223198055604244?color=%237289da&label=Discord)](https://discord.gg/cxSFkPZdsV)
@@ -7,17 +7,17 @@ Rete.js Vue plugin
 
 ## Key features
 
-- **Render elements**: visualize an elements such as nodes and connections using Vue.js components
+- **Render elements**: visualize nodes and connections using Stimulus controllers
 - **Customization**: modify appearance and behavior for a personalized workflow
-- **Presets**: predefined Vue.js components for different types of features
-  -  **[Classic](https://retejs.org/docs/guides/renderers/vue#connect-plugin)**: provides a classic visualization of nodes, connections, and controls
+- **Presets**: predefined Stimulus controllers for different types of features
+  -  **[Classic](https://retejs.org/docs/guides/renderers/stimulus#connect-plugin)**: provides a classic visualization of nodes, connections, and controls
   -  **[Context menu](https://retejs.org/docs/guides/context-menu#render-context-menu)**: provides a classic appearance for `rete-context-menu-plugin`
   -  **[Minimap](https://retejs.org/docs/guides/minimap#render)**: provides a classic appearance for `rete-minimap-plugin`
   -  **[Reroute](https://retejs.org/docs/guides/reroute#rendering)**: provides a classic appearance for `rete-connection-reroute-plugin`
 
 ## Getting Started
 
-Please refer to the [guide](https://retejs.org/docs/guides/renderers/vue) and [example](https://retejs.org/examples/vue) using this plugin
+Please refer to the [guide](https://retejs.org/docs/guides/renderers/stimulus) and [example](https://retejs.org/examples/stimulus) using this plugin
 
 ## Contribution
 
@@ -25,4 +25,4 @@ Please refer to the [Contribution](https://retejs.org/docs/contribution) guide
 
 ## License
 
-[MIT](https://github.com/retejs/vue-plugin/blob/main/LICENSE)
+[MIT](https://github.com/retejs/stimulus-plugin/blob/main/LICENSE)
