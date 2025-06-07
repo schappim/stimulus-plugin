@@ -1,14 +1,8 @@
-import { BaseSchemes, CanAssignSignal, Scope } from 'rete'
+import { BaseSchemes, Scope } from 'rete'
 
-import { RenderPreset } from './presets/types'
-import { getRenderer, Renderer } from './renderer'
+import { getRenderer, Renderer, ControllerConstructor } from './renderer'
 import { Position, RenderSignal } from './types'
-import { Context, Instance } from './vuecompat/types'
-
-export * as Presets from './presets'
-export type { ClassicScheme, VueArea2D } from './presets/classic/types'
-export type { RenderPreset } from './presets/types'
-export { default as Ref } from './Ref.vue'
+import { Application } from '@hotwired/stimulus'
 
 /**
  * Signals that can be emitted by the plugin
@@ -18,36 +12,33 @@ export type Produces<Schemes extends BaseSchemes> =
   | { type: 'connectionpath', data: { payload: Schemes['Connection'], path?: string, points: Position[] } }
 
 type Requires<Schemes extends BaseSchemes> =
-  | RenderSignal<'node', { payload: Schemes['Node'] }>
-  | RenderSignal<'connection', { payload: Schemes['Connection'], start?: Position, end?: Position }>
+  | RenderSignal<'node', { payload: Schemes['Node'], controller: ControllerConstructor<any>, props?: any }>
+  | RenderSignal<'connection', { payload: Schemes['Connection'], start?: Position, end?: Position, controller: ControllerConstructor<any>, props?: any }>
   | { type: 'unmount', data: { element: HTMLElement } }
 
 /**
- * Vue plugin options used to setup vue instance(s) used by retejs.
+ * Stimulus plugin options used to setup the Stimulus application instance.
  */
 export type Props = {
   /**
-   * Use this to setup vue.
-   *  @param [context] to be used for createApp({ ...context }) or new Vue({ ...context })
-   *  @returns app / vue instance.
+   * Stimulus application instance used to register controllers.
+   * If not provided, a new application will be started automatically.
    */
-  setup?: (context: Context) => Instance
+  application?: Application
 }
 
 /**
- * Vue plugin. Renders nodes, connections and other elements using React.
+ * Stimulus plugin. Renders nodes, connections and other elements using Stimulus controllers.
  * @priority 9
  * @emits connectionpath
  * @listens render
  * @listens unmount
  */
-export class VuePlugin<Schemes extends BaseSchemes, T = Requires<Schemes>> extends Scope<Produces<Schemes>, [Requires<Schemes> | T]> {
+export class StimulusPlugin<Schemes extends BaseSchemes, T = Requires<Schemes>> extends Scope<Produces<Schemes>, [Requires<Schemes> | T]> {
   renderer: Renderer<unknown>
-  presets: RenderPreset<Schemes, T>[] = []
-  owners = new WeakMap<HTMLElement, RenderPreset<Schemes, T>>()
 
   constructor(props?: Props) {
-    super('vue-render')
+    super('stimulus-render')
     this.renderer = getRenderer(props)
 
     this.addPipe(context => {
@@ -74,16 +65,7 @@ export class VuePlugin<Schemes extends BaseSchemes, T = Requires<Schemes>> exten
     })
   }
 
-  setParent(scope: Scope<Requires<Schemes> | T>): void {
-    super.setParent(scope)
-
-    this.presets.forEach(preset => {
-      if (preset.attach) preset.attach(this)
-    })
-  }
-
   private unmount(element: HTMLElement) {
-    this.owners.delete(element)
     this.renderer.unmount(element)
   }
 
@@ -92,42 +74,22 @@ export class VuePlugin<Schemes extends BaseSchemes, T = Requires<Schemes>> exten
     const parent = this.parentScope()
 
     if (existing) {
-      this.presets.forEach(preset => {
-        if (this.owners.get(element) !== preset) return
-        const result = preset.update(context as Extract<T, { type: 'render' }>, this)
-
-        if (result) {
-          this.renderer.update(existing, result)
-        }
-      })
+      this.renderer.update(existing, (context as any).data.props ?? {})
       return true
     }
 
-    for (const preset of this.presets) {
-      const result = preset.render(context as Extract<T, { type: 'render' }>, this)
+    const data = (context as any).data
 
-      if (!result) continue
+    if (!data.controller) return false
 
-      this.renderer.mount(
-        element,
-        result.component,
-        result.props,
-        () => parent.emit({ type: 'rendered', data: (context as Requires<Schemes>).data } as T)
-      )
-
-      this.owners.set(element, preset)
-      return true
-    }
-  }
-
-  /**
-   * Adds a preset to the plugin.
-   * @param preset Preset that can render nodes, connections and other elements.
-   */
-  public addPreset<K>(preset: RenderPreset<Schemes, CanAssignSignal<T, K> extends true ? K : 'Cannot apply preset. Provided signals are not compatible'>) {
-    const local = preset as RenderPreset<Schemes, T>
-
-    if (local.attach) local.attach(this)
-    this.presets.push(local)
+    this.renderer.mount(
+      element,
+      data.controller,
+      data.props ?? {},
+      () => {
+        void parent.emit({ type: 'rendered', data: (context as Requires<Schemes>).data } as T)
+      }
+    )
+    return true
   }
 }
