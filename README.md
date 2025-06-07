@@ -19,6 +19,85 @@ Rete.js Stimulus plugin
 
 Please refer to the [guide](https://retejs.org/docs/guides/renderers/stimulus) and [example](https://retejs.org/examples/stimulus) using this plugin
 
+## Stimulus example
+
+Below is a StimulusJS version of the [classic Vue example](https://retejs.org/docs/guides/#core-concepts). It shows how to initialize the editor and render nodes using a Stimulus controller.
+
+```javascript
+// node_controller.js
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static values = { label: String }
+
+  connect() {
+    this.element.textContent = this.labelValue
+  }
+
+  update(props) {
+    if (props.label) this.element.textContent = props.label
+  }
+}
+```
+
+```javascript
+// editor.js
+import { Application } from "@hotwired/stimulus"
+import { NodeEditor, GetSchemes, ClassicPreset } from "rete"
+import { AreaPlugin, AreaExtensions } from "rete-area-plugin"
+import {
+  ConnectionPlugin,
+  Presets as ConnectionPresets
+} from "rete-connection-plugin"
+import { StimulusPlugin } from "rete-stimulus-plugin"
+import NodeController from "./node_controller"
+
+type Schemes = GetSchemes<
+  ClassicPreset.Node,
+  ClassicPreset.Connection<ClassicPreset.Node, ClassicPreset.Node>
+>
+
+export async function createEditor(container) {
+  const application = Application.start()
+  const socket = new ClassicPreset.Socket("socket")
+
+  const editor = new NodeEditor<Schemes>()
+  const area = new AreaPlugin<Schemes>(container)
+  const connection = new ConnectionPlugin<Schemes>()
+  const render = new StimulusPlugin<Schemes>({ application })
+
+  editor.use(area)
+  area.use(connection)
+  area.use(render)
+
+  AreaExtensions.simpleNodesOrder(area)
+
+  const a = new ClassicPreset.Node("A")
+  a.addControl(
+    "a",
+    new ClassicPreset.InputControl("text", { initial: "hello" })
+  )
+  a.addOutput("a", new ClassicPreset.Output(socket))
+  await editor.addNode(a)
+  area.addNode(a, { controller: NodeController, props: { label: "A" } })
+
+  const b = new ClassicPreset.Node("B")
+  b.addControl(
+    "b",
+    new ClassicPreset.InputControl("text", { initial: "hello" })
+  )
+  b.addInput("b", new ClassicPreset.Input(socket))
+  await editor.addNode(b)
+  area.addNode(b, { controller: NodeController, props: { label: "B" } })
+
+  await area.translate(b.id, { x: 320, y: 0 })
+  await editor.addConnection(new ClassicPreset.Connection(a, "a", b, "b"))
+  AreaExtensions.zoomAt(area, editor.getNodes())
+
+  return () => area.destroy()
+}
+```
+
 ## Using with Rails
 
 Rails applications can leverage Stimulus controllers to render Rete.js elements.
